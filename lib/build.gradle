@@ -1,18 +1,18 @@
 plugins {
-    id 'com.android.application'
+    id 'com.android.library'
 }
 
 android {
-    compileSdk 30
+    compileSdkVersion 30
 
     defaultConfig {
-        applicationId "ir.cluby.pwa_wrapper"
-        minSdk 19
-        targetSdk 30
+        minSdkVersion 19
+        targetSdkVersion 30
         versionCode 1
         versionName "1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        consumerProguardFiles "consumer-rules.pro"
     }
 
     buildTypes {
@@ -28,4 +28,5 @@ android {
 }
 
 dependencies {
+
 }
