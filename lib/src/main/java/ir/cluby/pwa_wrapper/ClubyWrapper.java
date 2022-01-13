@@ -20,6 +20,7 @@ import android.widget.Toast;
 
 import androidx.annotation.RequiresApi;
 
+
 public class ClubyWrapper {
     private final Activity mActivity;
     private final WebView mWebView;
