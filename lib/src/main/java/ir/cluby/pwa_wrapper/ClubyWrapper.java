@@ -22,14 +22,14 @@ import androidx.annotation.RequiresApi;
 
 
 public class ClubyWrapper {
-    private final Activity mActivity;
-    private final WebView mWebView;
+    private Activity mActivity;
+    private WebView mWebView;
     private LoadListener loadListener;
     private boolean loadResultSent = false;
     private boolean loaded = false;
     private ValueCallback<Uri> mUploadMessage;
     public ValueCallback<Uri[]> uploadMessage;
-    private final WrapperInterface mWrapperInterface;
+    private WrapperInterface mWrapperInterface;
     private int mInsetTop = 0;
     private int mInsetBottom = 0;
 
@@ -335,6 +335,13 @@ public class ClubyWrapper {
 
     private static String escapeJSParamString(String s){
         return s.replace("\\","\\\\").replace("'","\\'");
+    }
+
+    public void release(){
+        mWebView = null;
+        loadListener = null;
+        mActivity = null;
+        mWrapperInterface = null;
     }
 
 }
