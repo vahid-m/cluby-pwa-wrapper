@@ -25,6 +25,25 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+    productFlavors {
+        flavorDimensions "MARKET"
+        direct {
+            dimension "MARKET"
+            buildConfigField "String", "MARKET", '"direct"'
+        }
+        auto {
+            dimension "MARKET"
+            buildConfigField "String", "MARKET", '"direct"'
+        }
+        cafeBazaar {
+            dimension "MARKET"
+            buildConfigField "String", "MARKET", '"cafebazaar"'
+        }
+        myket {
+            dimension "MARKET"
+            buildConfigField "String", "MARKET", '"myket"'
+        }
+    }
 }
 
 dependencies {

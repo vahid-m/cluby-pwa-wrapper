@@ -1,0 +1,7 @@
+<resources>
+    <string name="marketname_cafebazaar">CafeBazaar</string>
+    <string name="marketname_myket">Myket</string>
+    <string name="marketname_googleplay">Play Store</string>
+    <string name="market_not_installed_on_your_device"> is not installed on your device</string>
+    <string name="market_is_busy_right_now"> is busy right now, Perhaps reopening the application or restarting the device will solve the problem.</string>
+</resources>

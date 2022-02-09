@@ -4,6 +4,8 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Build;
@@ -33,20 +35,21 @@ public class ClubyWrapper {
     private int mInsetTop = 0;
     private int mInsetBottom = 0;
 
-    public static final int REQUEST_SELECT_FILE = 101;
-    public static final int FILE_CHOOSER_RESULT_CODE = 102;
+    public static final int REQUEST_SELECT_FILE = 911;
+    public static final int FILE_CHOOSER_RESULT_CODE = 912;
     private static final String JS_IAB_CALLBACK = "IABCallback";
-    private String mUserAgentAppendix;
+    private String mWrapperName;
+    private AppMarket mMarket;
 
-
-    public ClubyWrapper(Activity activity, WebView webView, String userAgentAppendix, WrapperInterface WInterface){
+    public ClubyWrapper(Activity activity, WebView webView, String wrapperName, WrapperInterface WInterface) {
         this.mActivity = activity;
         this.mWebView = webView;
         this.mWrapperInterface = WInterface;
-        this.mUserAgentAppendix = userAgentAppendix;
+        this.mWrapperName = wrapperName;
     }
 
-    private interface JSMethodsInterface{
+
+    private interface JSMethodsInterface {
         void openExternalUrl(String url);
 
         void launchPurchase(String sku, String payload);
@@ -59,24 +62,29 @@ public class ClubyWrapper {
 
         void queryInventory(String skus_str);
     }
-    private void executeJS(String script){
-        try{
+
+    private void executeJS(String script) {
+        try {
             mActivity.runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    mWebView.evaluateJavascript(script, null);
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                        mWebView.evaluateJavascript(script, null);
+                    } else {
+                        mWebView.loadUrl("javascript:" + script);
+                    }
                 }
             });
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    public void load(LoadListener listener){
+    public void load(LoadListener listener) {
 
         setupWebView();
 
-        if(listener != null)
+        if (listener != null)
             this.loadListener = listener;
         loadHome();
 
@@ -90,17 +98,22 @@ public class ClubyWrapper {
             @android.webkit.JavascriptInterface
             @Override
             public void launchPurchase(String sku, String payload) {
-                mWrapperInterface.launchPurchase(sku, payload, new WrapperInterface.PurchaseResultListener() {
+                WrapperInterface.PurchaseResultListener listener = new WrapperInterface.PurchaseResultListener() {
                     @Override
                     public void onPurchaseSucceeded(String market_name, String sku, String token, String serialized) {
-                        executeJS(JS_IAB_CALLBACK + "(null,'" + escapeJSParamString(market_name) + "','" + escapeJSParamString(sku) + "','" + escapeJSParamString(token)+ "','" + escapeJSParamString(serialized) + "');");
+                        executeJS(JS_IAB_CALLBACK + "(null,'" + escapeJSParamString(market_name) + "','" + escapeJSParamString(sku) + "','" + escapeJSParamString(token) + "','" + escapeJSParamString(serialized) + "');");
                     }
 
                     @Override
                     public void onPurchaseFailed(String error_code, String error_message) {
-                        executeJS(JS_IAB_CALLBACK + "('"+escapeJSParamString(error_code)+"','"+escapeJSParamString(error_message)+"');");
+                        executeJS(JS_IAB_CALLBACK + "('" + escapeJSParamString(error_code) + "','" + escapeJSParamString(error_message) + "');");
                     }
-                });
+                };
+                if (mMarket != null) {
+                    mMarket.launchPurchase(sku, payload, listener);
+                } else {
+                    mWrapperInterface.launchPurchase(sku, payload, listener);
+                }
             }
 
             @android.webkit.JavascriptInterface
@@ -118,19 +131,28 @@ public class ClubyWrapper {
             @android.webkit.JavascriptInterface
             @Override
             public void consumePurchase(String serialized) {
-                mWrapperInterface.consumePurchase(serialized);
+                if (mMarket != null) {
+                    mMarket.consumePurchase(serialized);
+                } else {
+                    mWrapperInterface.consumePurchase(serialized);
+                }
             }
 
             @android.webkit.JavascriptInterface
             @Override
             public void queryInventory(String skus_str) {
                 String[] skus = skus_str.split(",");
-                mWrapperInterface.queryInventory(skus, new WrapperInterface.QueryInventoryResultListener() {
+                WrapperInterface.QueryInventoryResultListener listener = new WrapperInterface.QueryInventoryResultListener() {
                     @Override
                     public void onFoundPurchase(String market_name, String sku, String token, String serialized) {
-                        executeJS(JS_IAB_CALLBACK + "(null,'" + escapeJSParamString(market_name) + "','" + escapeJSParamString(sku) + "','" + escapeJSParamString(token)+ "','" + escapeJSParamString(serialized) + "');");
+                        executeJS(JS_IAB_CALLBACK + "(null,'" + escapeJSParamString(market_name) + "','" + escapeJSParamString(sku) + "','" + escapeJSParamString(token) + "','" + escapeJSParamString(serialized) + "');");
                     }
-                });
+                };
+                if (mMarket != null) {
+                    mMarket.queryInventory(skus, listener);
+                } else {
+                    mWrapperInterface.queryInventory(skus, listener);
+                }
             }
         }, "WRAPPER");
 
@@ -156,7 +178,14 @@ public class ClubyWrapper {
         webSettings.setDatabaseEnabled(true);
         webSettings.setAllowFileAccess(true);
         webSettings.setAllowContentAccess(true);
-        webSettings.setUserAgentString(webSettings.getUserAgentString() + " " + this.mUserAgentAppendix);
+        String p_version = "Undefined";
+        try {
+            PackageInfo pInfo = mActivity.getPackageManager().getPackageInfo(mActivity.getPackageName(), 0);
+            p_version = pInfo.versionName;
+        } catch (PackageManager.NameNotFoundException e) {
+            e.printStackTrace();
+        }
+        webSettings.setUserAgentString(webSettings.getUserAgentString() +" "+this.mWrapperName+"/"+p_version+"-"+BuildConfig.MARKET);
         //webSettings.setUseWideViewPort(true);
 
         mWebView.setWebViewClient(new WebViewClient() {
@@ -173,7 +202,7 @@ public class ClubyWrapper {
                     ClubyWrapper.this.loadListener.onLoadSuccessful();
                     loadResultSent = true;
                 }
-                super.onPageFinished(view,url);
+                super.onPageFinished(view, url);
             }
 
             @Override
@@ -202,8 +231,7 @@ public class ClubyWrapper {
 
             // For 3.0+ Devices (Start)
             // onActivityResult attached before constructor
-            protected void openFileChooser(ValueCallback uploadMsg, String acceptType)
-            {
+            protected void openFileChooser(ValueCallback uploadMsg, String acceptType) {
                 mUploadMessage = uploadMsg;
                 Intent i = new Intent(Intent.ACTION_GET_CONTENT);
                 i.addCategory(Intent.CATEGORY_OPENABLE);
@@ -214,8 +242,7 @@ public class ClubyWrapper {
 
             // For Lollipop 5.0+ Devices
             @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-            public boolean onShowFileChooser(WebView mWebView, ValueCallback<Uri[]> filePathCallback, FileChooserParams fileChooserParams)
-            {
+            public boolean onShowFileChooser(WebView mWebView, ValueCallback<Uri[]> filePathCallback, FileChooserParams fileChooserParams) {
                 if (uploadMessage != null) {
                     uploadMessage.onReceiveValue(null);
                     uploadMessage = null;
@@ -224,11 +251,9 @@ public class ClubyWrapper {
                 uploadMessage = filePathCallback;
 
                 Intent intent = fileChooserParams.createIntent();
-                try
-                {
+                try {
                     mActivity.startActivityForResult(intent, REQUEST_SELECT_FILE);
-                } catch (ActivityNotFoundException e)
-                {
+                } catch (ActivityNotFoundException e) {
                     uploadMessage = null;
                     Toast.makeText(mActivity.getApplicationContext(), "Cannot Open File Chooser", Toast.LENGTH_LONG).show();
                     return false;
@@ -237,8 +262,7 @@ public class ClubyWrapper {
             }
 
             //For Android 4.1 only
-            protected void openFileChooser(ValueCallback<Uri> uploadMsg, String acceptType, String capture)
-            {
+            protected void openFileChooser(ValueCallback<Uri> uploadMsg, String acceptType, String capture) {
                 mUploadMessage = uploadMsg;
                 Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
                 intent.addCategory(Intent.CATEGORY_OPENABLE);
@@ -246,14 +270,14 @@ public class ClubyWrapper {
                 mActivity.startActivityForResult(Intent.createChooser(intent, "File Browser"), FILE_CHOOSER_RESULT_CODE);
             }
 
-            protected void openFileChooser(ValueCallback<Uri> uploadMsg)
-            {
+            protected void openFileChooser(ValueCallback<Uri> uploadMsg) {
                 mUploadMessage = uploadMsg;
                 Intent i = new Intent(Intent.ACTION_GET_CONTENT);
                 i.addCategory(Intent.CATEGORY_OPENABLE);
                 i.setType("image/*");
                 mActivity.startActivityForResult(Intent.createChooser(i, "File Chooser"), FILE_CHOOSER_RESULT_CODE);
             }
+
             @Override
             public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
                 Log.d("ClubyWrapper", consoleMessage.message() + " -- From line " +
@@ -277,9 +301,13 @@ public class ClubyWrapper {
         void onError();
     }
 
-    void onLoad(){
+    void onLoad() {
         loaded = true;
         setPadding(mInsetTop, mInsetBottom);
+    }
+
+    public void setupInternalBilling(String RSA) {
+        mMarket = new AppMarket(mActivity, RSA);
     }
 
     public void onPause() {
@@ -298,46 +326,47 @@ public class ClubyWrapper {
         return false;
     }
 
-    public void pushNewFCMToken(String token){
-        mWebView.evaluateJavascript("newFCMToken('"+ escapeJSParamString(token)+"')",null);
+    public void pushNewFCMToken(String token) {
+        executeJS("newFCMToken('" + escapeJSParamString(token) + "')");
     }
 
-    public void setPadding(int top, int bottom){
+    public void setPadding(int top, int bottom) {
         this.mInsetTop = top;
         this.mInsetBottom = bottom;
-        if(loaded) {
-            mWebView.evaluateJavascript("window.applyCustomPadding(" + top + "," + Math.ceil(bottom*1.4) + ");", null);
+        if (loaded) {
+            executeJS("window.applyCustomPadding(" + top + "," + Math.ceil(bottom * 1.4) + ");");
         }
     }
 
-    public void handleActivityResult(int requestCode, int resultCode, Intent intent){
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
-        {
-            if (requestCode == REQUEST_SELECT_FILE)
-            {
-                if (uploadMessage == null)
-                    return;
-                uploadMessage.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(resultCode, intent));
-                uploadMessage = null;
-            }
-        } else if (requestCode == FILE_CHOOSER_RESULT_CODE) {
-            if (null == mUploadMessage)
-                return;
+    public boolean handleActivityResult(int requestCode, int resultCode, Intent intent) {
+        if (requestCode == REQUEST_SELECT_FILE && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            if (uploadMessage == null)
+                return true;
+            uploadMessage.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(resultCode, intent));
+            uploadMessage = null;
+            return true;
+        }
+        if (requestCode == FILE_CHOOSER_RESULT_CODE) {
+            if (mUploadMessage == null)
+                return true;
             // Use MainActivity.RESULT_OK if you're implementing WebView inside Fragment
             // Use RESULT_OK only if you're implementing WebView inside an Activity
             Uri result = intent == null || resultCode != Activity.RESULT_OK ? null : intent.getData();
             mUploadMessage.onReceiveValue(result);
             mUploadMessage = null;
-        } else {
-            Toast.makeText(mActivity.getApplicationContext(), "Failed to Upload Image", Toast.LENGTH_LONG).show();
+            return true;
         }
+        if (requestCode == AppMarket.IAB_REQUEST_CODE && mMarket != null) {
+            return mMarket.iabHelper.handleActivityResult(requestCode, resultCode, intent);
+        }
+        return false;
     }
 
-    private static String escapeJSParamString(String s){
-        return s.replace("\\","\\\\").replace("'","\\'");
+    private static String escapeJSParamString(String s) {
+        return s.replace("\\", "\\\\").replace("'", "\\'");
     }
 
-    public void release(){
+    public void release() {
         mWebView = null;
         loadListener = null;
         mActivity = null;

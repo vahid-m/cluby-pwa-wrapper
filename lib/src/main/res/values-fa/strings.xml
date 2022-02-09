@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="marketname_cafebazaar">کافه بازار</string>
+    <string name="marketname_myket">مایکت</string>
+    <string name="marketname_googleplay">گوگل پلی</string>
+    <string name="market_not_installed_on_your_device"> روی دستگاه شما نصب نیست</string>
+    <string name="market_is_busy_right_now"> مشغول است ! شاید با دوباره باز کردن برنامه یا خاموش و روشن کردن دستگاه مشکل حل شود</string>
+</resources>
