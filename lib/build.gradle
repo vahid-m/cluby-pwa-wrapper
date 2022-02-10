@@ -57,7 +57,7 @@ afterEvaluate {
         if (variant.buildType.name != "release") { return }
         def libraryGroupId = 'com.cluby'
         def libraryArtifactId = 'pwa-wrapper'
-        def libraryVersion = '1.0'
+        def libraryVersion = '1.5'
 
         publishing.publications.create(variant.name, MavenPublication) {
             from components.findByName(variant.name)
