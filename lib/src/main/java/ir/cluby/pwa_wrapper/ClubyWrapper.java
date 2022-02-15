@@ -40,6 +40,7 @@ public class ClubyWrapper {
     private static final String JS_IAB_CALLBACK = "IABCallback";
     private String mWrapperName;
     private AppMarket mMarket;
+    private String mBaseUrl;
 
     public ClubyWrapper(Activity activity, WebView webView, String wrapperName, WrapperInterface WInterface) {
         this.mActivity = activity;
@@ -80,12 +81,13 @@ public class ClubyWrapper {
         }
     }
 
-    public void load(LoadListener listener) {
-
+    public void load(String baseUrl,LoadListener listener) {
+        this.mBaseUrl = baseUrl;
         setupWebView();
 
         if (listener != null)
             this.loadListener = listener;
+
         loadHome();
 
         mWebView.addJavascriptInterface(new JSMethodsInterface() {
@@ -207,7 +209,7 @@ public class ClubyWrapper {
 
             @Override
             public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
-                if (failingUrl.contains("web.cluby.ir") && ClubyWrapper.this.loadListener != null && !loadResultSent) {
+                if (failingUrl.contains(ClubyWrapper.this.mBaseUrl) && ClubyWrapper.this.loadListener != null && !loadResultSent) {
                     ClubyWrapper.this.loadListener.onError();
                     loadResultSent = true;
                 }
@@ -217,7 +219,7 @@ public class ClubyWrapper {
             @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
             @Override
             public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
-                if (request.getUrl().toString().contains("web.cluby.ir") && ClubyWrapper.this.loadListener != null && !loadResultSent) {
+                if (request.getUrl().toString().contains(ClubyWrapper.this.mBaseUrl) && ClubyWrapper.this.loadListener != null && !loadResultSent) {
                     ClubyWrapper.this.loadListener.onError();
                     loadResultSent = true;
                 }
@@ -291,7 +293,7 @@ public class ClubyWrapper {
 
     public void loadHome() {
         loadResultSent = false;
-        mWebView.loadUrl("https://web.cluby.ir");
+        mWebView.loadUrl(mBaseUrl);
         //mWebView.loadUrl("http://192.168.1.50:3000");
     }
 
