@@ -13,7 +13,7 @@ public abstract class WrapperInterface {
 
         void onPurchaseFailed(String error_code, String error_message);
     }
-
+    public abstract void onEvent(String event);
 
     public abstract void openExternalUrl(String url);
 

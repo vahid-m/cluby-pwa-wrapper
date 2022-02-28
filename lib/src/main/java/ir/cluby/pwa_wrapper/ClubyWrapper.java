@@ -62,6 +62,8 @@ public class ClubyWrapper {
         void consumePurchase(String serialized);
 
         void queryInventory(String skus_str);
+
+        void onEvent(String event);
     }
 
     private void executeJS(String script) {
@@ -81,7 +83,7 @@ public class ClubyWrapper {
         }
     }
 
-    public void load(String baseUrl,LoadListener listener) {
+    public void load(String baseUrl, LoadListener listener) {
         this.mBaseUrl = baseUrl;
         setupWebView();
 
@@ -91,6 +93,12 @@ public class ClubyWrapper {
         loadHome();
 
         mWebView.addJavascriptInterface(new JSMethodsInterface() {
+            @android.webkit.JavascriptInterface
+            @Override
+            public void onEvent(String event) {
+                mWrapperInterface.onEvent(event);
+            }
+
             @android.webkit.JavascriptInterface
             @Override
             public void openExternalUrl(String url) {
@@ -187,7 +195,7 @@ public class ClubyWrapper {
         } catch (PackageManager.NameNotFoundException e) {
             e.printStackTrace();
         }
-        webSettings.setUserAgentString(webSettings.getUserAgentString() +" "+this.mWrapperName+"/"+p_version+"-"+BuildConfig.MARKET);
+        webSettings.setUserAgentString(webSettings.getUserAgentString() + " " + this.mWrapperName + "/" + p_version + "-" + BuildConfig.MARKET);
         //webSettings.setUseWideViewPort(true);
 
         mWebView.setWebViewClient(new WebViewClient() {
@@ -330,6 +338,10 @@ public class ClubyWrapper {
 
     public void pushNewFCMToken(String token) {
         executeJS("newFCMToken('" + escapeJSParamString(token) + "')");
+    }
+
+    public void setUserToken(String token) {
+        executeJS("setUserToken('" + escapeJSParamString(token) + "')");
     }
 
     public void setPadding(int top, int bottom) {
