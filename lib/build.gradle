@@ -10,7 +10,7 @@ android {
         minSdkVersion 17
         targetSdkVersion 31
         versionCode 2
-        versionName "1.7.1"
+        versionName "1.8"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles "consumer-rules.pro"
@@ -58,7 +58,7 @@ afterEvaluate {
         if (variant.buildType.name != "release") { return }
         def libraryGroupId = 'com.cluby'
         def libraryArtifactId = 'pwa-wrapper'
-        def libraryVersion = '1.7.1'
+        def libraryVersion = '1.8'
 
         publishing.publications.create(variant.name, MavenPublication) {
             from components.findByName(variant.name)
