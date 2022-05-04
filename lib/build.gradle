@@ -4,13 +4,13 @@ plugins {
 }
 
 android {
-    compileSdkVersion 30
+    compileSdkVersion 31
 
     defaultConfig {
         minSdkVersion 17
-        targetSdkVersion 30
+        targetSdkVersion 31
         versionCode 2
-        versionName "1.7"
+        versionName "1.7.1"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles "consumer-rules.pro"
@@ -49,6 +49,7 @@ android {
 
 dependencies {
     implementation 'androidx.annotation:annotation:1.3.0'
+    implementation 'com.github.vahid-m:BillingAidl:v1.0'
 }
 
 afterEvaluate {
@@ -57,7 +58,7 @@ afterEvaluate {
         if (variant.buildType.name != "release") { return }
         def libraryGroupId = 'com.cluby'
         def libraryArtifactId = 'pwa-wrapper'
-        def libraryVersion = '1.7'
+        def libraryVersion = '1.7.1'
 
         publishing.publications.create(variant.name, MavenPublication) {
             from components.findByName(variant.name)
